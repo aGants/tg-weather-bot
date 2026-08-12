@@ -13,12 +13,17 @@ const {
   getWeatherByCity,
   getCityCoords,
 } = require("../services/weatherService");
+const { sanitizeCityName } = require("../utils/textSanitizer");
 
 // Обработчик геолокации
 async function handleLocation(ctx) {
   try {
     const { latitude, longitude } = ctx.message.location;
-    console.log(`📍 Получена геолокация: ${latitude}, ${longitude}`);
+    // Логируем координаты с пониженной точностью (~11 км), чтобы не хранить
+    // точное местоположение пользователя в логах
+    console.log(
+      `📍 Получена геолокация: ~${latitude.toFixed(1)}, ~${longitude.toFixed(1)}`
+    );
 
     // Получаем название города по координатам
     const cityName = await getCityByCoords(latitude, longitude);
@@ -35,9 +40,7 @@ async function handleLocation(ctx) {
     ctx.session.lastCity = cityName;
     ctx.session.lastCoords = { lat: latitude, lon: longitude };
 
-    console.log(
-      `✅ Город определен: ${cityName}, координаты сохранены: ${latitude}, ${longitude}`
-    );
+    console.log(`✅ Город определен: ${cityName}, координаты сохранены`);
 
     // Сначала отправляем сообщение о городе
     await ctx.reply(
@@ -69,35 +72,45 @@ async function handleText(ctx) {
   // Если ожидаем ввод города
   if (session?.waitingForCity) {
     session.waitingForCity = false;
-    console.log("✅ Обрабатываем ввод города:", text);
+
+    const city = sanitizeCityName(text);
+
+    if (!city) {
+      await ctx.reply(
+        "❌ Название города не может быть пустым. Попробуйте еще раз через /manual_city."
+      );
+      return;
+    }
+
+    console.log("✅ Обрабатываем ввод города:", city);
 
     try {
       // Получаем погоду и координаты города
       const [weather, cityCoords] = await Promise.all([
-        getWeatherByCity(text),
-        getCityCoords(text),
+        getWeatherByCity(city),
+        getCityCoords(city),
       ]);
 
       // Сохраняем данные в сессии
-      session.lastCity = text;
+      session.lastCity = city;
       if (cityCoords) {
         session.lastCoords = { lat: cityCoords.lat, lon: cityCoords.lon };
-        console.log("💾 Город и координаты сохранены:", text, cityCoords);
+        console.log("💾 Город и координаты сохранены:", city);
       } else {
-        console.log("💾 Город сохранен, координаты не получены:", text);
+        console.log("💾 Город сохранен, координаты не получены:", city);
       }
 
       // Сначала отправляем сообщение о сохранении города
       await ctx.reply(
-        `💾 Город "${text}" сохранен!\n\nТеперь вы можете использовать команду /what_to_wear для получения рекомендаций по одежде в любое время.`
+        `💾 Город "${city}" сохранен!\n\nТеперь вы можете использовать команду /what_to_wear для получения рекомендаций по одежде в любое время.`
       );
 
       // Затем отправляем прогноз погоды
       await ctx.reply(weather);
     } catch (error) {
-      console.error("❌ Ошибка при получении погоды для города:", text, error);
+      console.error("❌ Ошибка при получении погоды для города:", city, error);
       await ctx.reply(
-        `❌ Извините, не удалось получить погоду для города "${text}".\n\n` +
+        `❌ Извините, не удалось получить погоду для города "${city}".\n\n` +
           "Попробуйте другой город или проверьте правильность написания."
       );
     }
