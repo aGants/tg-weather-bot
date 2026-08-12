@@ -98,4 +98,28 @@ npm start
 ```env
 BOT_API_KEY=your_telegram_bot_token
 NODE_ENV=development
+
+# Только для продакшена: если задан WEBHOOK_URL, бот работает через webhook
+# вместо long-polling (см. раздел "Деплой на Render" ниже).
+# WEBHOOK_URL=https://your-app.onrender.com
+# WEBHOOK_SECRET=some_random_string
 ```
+
+## ☁️ **Деплой на Render (бесплатный тариф)**
+
+Бот по умолчанию работает через long-polling, для которого нет бесплатного типа сервиса на Render. Поэтому для бесплатного деплоя используется **Web Service** + **webhook**: код сам переключается в этот режим, если задана переменная `WEBHOOK_URL`.
+
+1. Запушьте репозиторий на GitHub.
+2. На [render.com](https://render.com) → **New** → **Web Service**, подключите репозиторий.
+3. Настройки сервиса:
+   - **Runtime**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Instance Type**: Free
+4. В разделе **Environment** добавьте переменные:
+   - `BOT_API_KEY` — токен бота от [@BotFather](https://t.me/BotFather)
+   - `WEBHOOK_SECRET` — любая случайная строка (например, сгенерированная через `openssl rand -hex 32`)
+   - `WEBHOOK_URL` можно не задавать — Render сам прокидывает `RENDER_EXTERNAL_URL`, и код использует его автоматически.
+5. Нажмите **Create Web Service** и дождитесь деплоя.
+
+**Особенность бесплатного тарифа:** инстанс "засыпает" после 15 минут без HTTP-запросов и просыпается по первому входящему запросу (в т.ч. от Telegram при отправке сообщения боту) — первое сообщение после простоя может обрабатываться с задержкой в несколько секунд.
