@@ -96,6 +96,6 @@ npm start
 
 ### **Переменные окружения**
 ```env
-BOT_TOKEN=your_telegram_bot_token
+BOT_API_KEY=your_telegram_bot_token
 NODE_ENV=development
 ```
