@@ -8,11 +8,23 @@
  *
  * Логика определения погоды и рекомендаций вынесена в weatherLogic.js
  */
+// User-Agent обязателен для Nominatim (https://operations.osmfoundation.org/policies/nominatim/)
+// и вежлив по отношению к любому внешнему API
+const REQUEST_HEADERS = {
+  "User-Agent": "tg-weather-bot/1.0 (https://github.com/aGants/tg-weather-bot)",
+};
+const REQUEST_TIMEOUT_MS = 10000;
+
 // Функция для retry API запросов
 async function fetchWithRetry(url, maxRetries = 3) {
+  let lastError;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: REQUEST_HEADERS,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
 
       if (response.status === 429) {
         // Rate limit - ждем 1 секунду и пробуем снова
@@ -29,6 +41,8 @@ async function fetchWithRetry(url, maxRetries = 3) {
 
       return response;
     } catch (error) {
+      lastError = error;
+
       if (attempt === maxRetries) {
         throw error;
       }
@@ -40,6 +54,9 @@ async function fetchWithRetry(url, maxRetries = 3) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
+
+  // Достигнуто только если все попытки исчерпаны из-за 429
+  throw lastError || new Error("Не удалось получить ответ от API");
 }
 
 // Импорт функций логики погоды
@@ -51,6 +68,8 @@ const {
   getAirQualityLevel,
   analyzeWeatherChanges,
 } = require("./weatherLogic");
+
+const { sanitizeCityName } = require("../utils/textSanitizer");
 
 // Константы для качества воздуха
 const AIR_QUALITY_THRESHOLDS = {
@@ -75,14 +94,14 @@ async function getCityByCoords(lat, lon) {
 
     // Ищем город в порядке приоритета
     const { address } = data;
-    return (
+    return sanitizeCityName(
       address.city ||
-      address.town ||
-      address.village ||
-      address.county ||
-      address.state ||
-      address.country ||
-      null
+        address.town ||
+        address.village ||
+        address.county ||
+        address.state ||
+        address.country ||
+        null
     );
   } catch (error) {
     console.error("Error getting city name:", error);
@@ -105,7 +124,7 @@ async function getCityCoords(city) {
     }
 
     const { latitude, longitude, name } = data.results[0];
-    return { lat: latitude, lon: longitude, name };
+    return { lat: latitude, lon: longitude, name: sanitizeCityName(name) };
   } catch (error) {
     console.error("Error getting city coordinates:", error);
     return null;
