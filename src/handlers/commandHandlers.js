@@ -6,6 +6,7 @@ const {
 const { menuGeoChoose, shareKeyboard } = require("../utils/keyboards");
 
 async function handleStart(ctx) {
+  console.log("📊 /start", ctx.from?.id);
   const { session } = ctx;
   const hasLastCity = session?.lastCity;
 
@@ -21,12 +22,14 @@ async function handleStart(ctx) {
 }
 
 async function handleShare(ctx) {
+  console.log("📊 /share_location", ctx.from?.id);
   await ctx.reply("Поделись своими гео-данными", {
     reply_markup: shareKeyboard,
   });
 }
 
 async function handleManual(ctx) {
+  console.log("📊 /manual_city", ctx.from?.id);
   await ctx.reply(
     "Введите свой город в формате: Москва, Санкт-Петербург, и т.д."
   );
@@ -37,6 +40,7 @@ async function handleManual(ctx) {
 // Обработчик команды /what_to_wear
 // Использует сохраненные координаты для получения консистентных данных о погоде
 async function handleWhatToWear(ctx) {
+  console.log("📊 /what_to_wear", ctx.from?.id);
   const { session } = ctx;
 
   if (!session?.lastCity) {

@@ -18,6 +18,7 @@ const { sanitizeCityName } = require("../utils/textSanitizer");
 // Обработчик геолокации
 async function handleLocation(ctx) {
   try {
+    console.log("📊 location", ctx.from?.id);
     const { latitude, longitude } = ctx.message.location;
     // Логируем координаты с пониженной точностью (~11 км), чтобы не хранить
     // точное местоположение пользователя в логах
@@ -70,7 +71,7 @@ async function handleText(ctx) {
   const { text } = ctx.message;
   const { session } = ctx;
 
-  console.log("💬 Получено текстовое сообщение от пользователя:", ctx.from?.id);
+  console.log("📊 text", ctx.from?.id);
 
   // Если ожидаем ввод города
   if (session?.waitingForCity) {
