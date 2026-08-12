@@ -4,6 +4,7 @@ const { hydrate } = require("@grammyjs/hydrate");
 
 const { ACTIONS, COMMANDS_MENU } = require("./config/constants");
 const { sessionMiddleware } = require("./utils/sessionMiddleware");
+const { rateLimitMiddleware } = require("./utils/rateLimitMiddleware");
 const {
   handleStart,
   handleShare,
@@ -20,6 +21,7 @@ const { handleError } = require("./handlers/errorHandler");
 const bot = new Bot(process.env.BOT_API_KEY);
 bot.use(hydrate());
 bot.use(sessionMiddleware());
+bot.use(rateLimitMiddleware());
 
 // Функция для установки команд с retry логикой
 async function setupCommands(retryAfter = 60) {
