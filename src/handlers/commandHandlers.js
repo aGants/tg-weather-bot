@@ -48,6 +48,8 @@ async function handleWhatToWear(ctx) {
   }
 
   try {
+    await ctx.replyWithChatAction("typing");
+
     // Приоритет: используем сохраненные координаты, fallback - геокодинг города
     const weather = session.lastCoords
       ? await getWeatherByCoords(

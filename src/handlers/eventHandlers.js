@@ -25,6 +25,8 @@ async function handleLocation(ctx) {
       `📍 Получена геолокация: ~${latitude.toFixed(1)}, ~${longitude.toFixed(1)}`
     );
 
+    await ctx.replyWithChatAction("typing");
+
     // Получаем название города по координатам
     const cityName = await getCityByCoords(latitude, longitude);
 
@@ -51,6 +53,7 @@ async function handleLocation(ctx) {
     );
 
     // Затем получаем и отправляем прогноз погоды
+    await ctx.replyWithChatAction("typing");
     const weatherInfo = await getWeatherByCoords(latitude, longitude, cityName);
     await ctx.reply(weatherInfo);
   } catch (error) {
@@ -85,6 +88,8 @@ async function handleText(ctx) {
     console.log("✅ Обрабатываем ввод города:", city);
 
     try {
+      await ctx.replyWithChatAction("typing");
+
       // Получаем погоду и координаты города
       const [weather, cityCoords] = await Promise.all([
         getWeatherByCity(city),
