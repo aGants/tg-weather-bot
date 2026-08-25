@@ -7,6 +7,25 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL || process.env.RENDER_EXTERNAL_URL;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const WEBHOOK_PATH = "/telegram/webhook";
 
+async function setWebhookWithRetry(retryAfter = 60) {
+  try {
+    await bot.api.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`, {
+      secret_token: WEBHOOK_SECRET,
+    });
+  } catch (error) {
+    if (error.error_code === 429) {
+      const retryDelay = error.parameters?.retry_after || retryAfter;
+      console.log(
+        `⚠️ Rate limit превышен при установке вебхука. Повторная попытка через ${retryDelay} секунд`
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryDelay * 1000));
+      await setWebhookWithRetry(retryDelay);
+    } else {
+      throw error;
+    }
+  }
+}
+
 async function startWebhook() {
   if (!WEBHOOK_SECRET) {
     console.warn(
@@ -14,9 +33,7 @@ async function startWebhook() {
     );
   }
 
-  await bot.api.setWebhook(`${WEBHOOK_URL}${WEBHOOK_PATH}`, {
-    secret_token: WEBHOOK_SECRET,
-  });
+  await setWebhookWithRetry();
 
   const handleUpdate = webhookCallback(bot, "http", {
     secretToken: WEBHOOK_SECRET,
